@@ -1,6 +1,7 @@
 using ExpenseTrackingAPI.DataContext;
 using ExpenseTrackingAPI.Models.DbModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
