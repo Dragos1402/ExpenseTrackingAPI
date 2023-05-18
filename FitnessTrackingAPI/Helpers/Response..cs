@@ -36,6 +36,16 @@
                     error_message.msg_text= "There was an error in the Database while reading the data (Data missing or an error occured)";
                     error_message.msg_type= "There was an error in the Database while reading the data (Data missing or an error occured)";
                     break;
+                case ErrorCodes.DATABASE_WRITING_ERROR:
+
+                    result = false;
+                    success = false;
+                    error_message.msg_code = Convert.ToInt32(code);
+                    error_message.msg_method = Method;
+                    error_message.msg_techdata = "There was an error while writing the data (Data bad format or an error orccured)";
+                    error_message.msg_text = "There was an error while writing the data (Data bad format or an error orccured)";
+                    error_message.msg_type = "There was an error while writing the data (Data bad format or an error orccured)";
+                    break;
             }
         }
     }
