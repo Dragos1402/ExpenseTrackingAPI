@@ -22,7 +22,7 @@ namespace ExpenseTrackingAPI.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("ExpenseTrackingAPI.Models.DbModels.TransactionCategory", b =>
+            modelBuilder.Entity("ExpenseTrackingAPI.Models.DbModels.TransactionCategories", b =>
                 {
                     b.Property<int>("category_id")
                         .ValueGeneratedOnAdd()
@@ -36,24 +36,24 @@ namespace ExpenseTrackingAPI.Migrations
 
                     b.HasKey("category_id");
 
-                    b.ToTable("Transaction_Category", (string)null);
+                    b.ToTable("TransactionCategories", (string)null);
                 });
 
-            modelBuilder.Entity("ExpenseTrackingAPI.Models.DbModels.TransactionType", b =>
+            modelBuilder.Entity("ExpenseTrackingAPI.Models.DbModels.TransactionTypes", b =>
                 {
-                    b.Property<int>("transaction_id")
+                    b.Property<int>("type_id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("transaction_id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("type_id"));
 
-                    b.Property<string>("transaction_name")
+                    b.Property<string>("transaction_type")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("transaction_id");
+                    b.HasKey("type_id");
 
-                    b.ToTable("Transaction_Type", (string)null);
+                    b.ToTable("TransactionTypes", (string)null);
                 });
 
             modelBuilder.Entity("ExpenseTrackingAPI.Models.DbModels.Transactions", b =>
@@ -64,16 +64,17 @@ namespace ExpenseTrackingAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("transaction_id"));
 
-                    b.Property<string>("category")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("category_id")
+                        .HasColumnType("int");
 
                     b.Property<string>("note")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("transaction_date")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("type_id")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("value")
                         .HasColumnType("decimal(18,2)");

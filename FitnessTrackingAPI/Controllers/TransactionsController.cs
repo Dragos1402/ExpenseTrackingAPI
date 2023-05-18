@@ -7,118 +7,118 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ExpenseTrackingAPI.DataContext;
 using ExpenseTrackingAPI.Models.DbModels;
+using ExpenseTrackingAPI.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using System.Globalization;
+using ExpenseTrackingAPI.Helpers;
+using ExpenseTrackingAPI.Models.TransactionModels;
+using System.Reflection;
 
 namespace ExpenseTrackingAPI.Controllers
 {
-    [Route("api/[controller]")]
+    // DE PASTRAT
+
+    // Select [category_name] from [TransactionCategories] where [TransactionCategories].category_id=(SELECT [category_id] FROM [Transaction] where [value]=213) 
+
+    [Route("api/transaction")]
     [ApiController]
     public class TransactionsController : ControllerBase
     {
-        private readonly ExpenseContext _context;
-
-        public TransactionsController(ExpenseContext context)
+        readonly ITransactions _transactions;
+        private readonly IHttpContextAccessor _contextAccessor;
+        public TransactionsController(ITransactions transactions, IHttpContextAccessor httpContextAccessor)
         {
-            _context = context;
+            _transactions = transactions;
+            _contextAccessor = httpContextAccessor;
         }
-
-        // GET: api/Transactions
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Transactions>>> GetTransactions()
+        [HttpGet("get_transactions")]
+        public ActionResult GetTransactions()
         {
-          if (_context.Transactions == null)
-          {
-              return NotFound();
-          }
-            return await _context.Transactions.ToListAsync();
-        }
-
-        // GET: api/Transactions/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Transactions>> GetTransactions(int id)
-        {
-          if (_context.Transactions == null)
-          {
-              return NotFound();
-          }
-            var transactions = await _context.Transactions.FindAsync(id);
-
-            if (transactions == null)
-            {
-                return NotFound();
-            }
-
-            return transactions;
-        }
-
-        // PUT: api/Transactions/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutTransactions(int id, Transactions transactions)
-        {
-            if (id != transactions.transaction_id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(transactions).State = EntityState.Modified;
+            string result = "";
+            Response response = new Response();
 
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!TransactionsExists(id))
+                result = _transactions.GetTransactions();
+                if (result == ErrorCodes.SUCCESS)
                 {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
+                    response.data = _transactions.Transactions;
+                    response.SetResponse(result, MethodBase.GetCurrentMethod().Name);
                 }
             }
-
-            return NoContent();
-        }
-
-        // POST: api/Transactions
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Transactions>> PostTransactions(Transactions transactions)
-        {
-          if (_context.Transactions == null)
-          {
-              return Problem("Entity set 'ExpenseContext.Transactions'  is null.");
-          }
-            _context.Transactions.Add(transactions);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetTransactions", new { id = transactions.transaction_id }, transactions);
-        }
-
-        // DELETE: api/Transactions/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTransactions(int id)
-        {
-            if (_context.Transactions == null)
+            catch (Exception ex)
             {
-                return NotFound();
+                response.SetResponse(result, MethodBase.GetCurrentMethod().Name, ex);
+                return BadRequest(response);
             }
-            var transactions = await _context.Transactions.FindAsync(id);
-            if (transactions == null)
-            {
-                return NotFound();
-            }
-
-            _context.Transactions.Remove(transactions);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            return Ok(response);
         }
 
-        private bool TransactionsExists(int id)
+        //[Authorize]
+        [HttpGet("get_transaction/{id}")]
+        public ActionResult GetTransactionByID(int id)
         {
-            return (_context.Transactions?.Any(e => e.transaction_id == id)).GetValueOrDefault();
+            string result = "";
+            Response response= new Response();
+
+            try
+            {
+                result = _transactions.GetTransactionById(id);
+                if (result == ErrorCodes.SUCCESS)
+                {
+                    response.data = _transactions.Transaction;
+                    response.SetResponse(result, MethodBase.GetCurrentMethod().Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                response.SetResponse(result, MethodBase.GetCurrentMethod().Name, ex);
+                return BadRequest(response);
+                //Log.WriteError("GetTransactionByID", "GetTransactionByID(Controller) had an error", ex);
+            }
+            return Ok(response);
+        }
+        [HttpPost("add_transaction")]
+        public ActionResult AddTransaction([FromBody] AddTransaction addTransaction)
+        {
+            string result = "";
+            Response response = new Response();
+            try
+            {
+                result = _transactions.AddTransaction(addTransaction);
+                if (result == ErrorCodes.SUCCESS)
+                {
+                    response.data = _transactions.ResultID;
+                    response.SetResponse(result, MethodBase.GetCurrentMethod().Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                response.SetResponse(result, MethodBase.GetCurrentMethod().Name, ex);
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
+        [HttpPost("update_Transaction")]
+        public ActionResult UpdateTransaction([FromBody] UpdateTransaction updateTransaction)
+        {
+            string result = "";
+            Response response = new Response();
+            try
+            {
+                result = _transactions.UpdateTransaction(updateTransaction);
+                if (result == ErrorCodes.SUCCESS)
+                {
+                    response.data= _transactions.ResultID;
+                    response.SetResponse(result, MethodBase.GetCurrentMethod().Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                response.SetResponse(result, MethodBase.GetCurrentMethod().Name, ex);
+                return BadRequest(response);
+            }
+            return Ok(response);
         }
     }
 }
