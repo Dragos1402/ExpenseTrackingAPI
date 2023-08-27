@@ -46,6 +46,24 @@
                     error_message.msg_text = "There was an error while writing the data (Data bad format or an error orccured)";
                     error_message.msg_type = "There was an error while writing the data (Data bad format or an error orccured)";
                     break;
+                case ErrorCodes.UNAUTHORIZED:
+                    result = false;
+                    success = false;
+                    error_message.msg_code = Convert.ToInt32(code);
+                    error_message.msg_method = Method;
+                    error_message.msg_techdata = "User Unauthorized (Missing authorization data)";
+                    error_message.msg_text = "User Unauthorized (Missing authorization data)";
+                    error_message.msg_type = "User Unauthorized (Missing authorization data)";
+                    break;
+                case ErrorCodes.ACCOUNT_NOT_FOUND:
+                    result = false;
+                    success = false;
+                    error_message.msg_code= Convert.ToInt32(code);
+                    error_message.msg_method = Method;
+                    error_message.msg_techdata = "Account Not Found (Bad Credentials)";
+                    error_message.msg_text= "Account Not Found (Bad Credentials)";
+                    error_message.msg_type = "Account Not Found (Bad Credentials)";
+                    break;
             }
         }
     }

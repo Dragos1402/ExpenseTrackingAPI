@@ -1,4 +1,4 @@
-﻿namespace ExpenseTrackingAPI.Models.DbModels
+﻿namespace ExpenseTrackingAPI.DbModels
 {
     public class TransactionType
     {

@@ -1,6 +1,6 @@
-﻿using ExpenseTrackingAPI.Models.DbModels;
+﻿using ExpenseTrackingAPI.DbModels;
 
-namespace ExpenseTrackingAPI.Models.TransactionModels
+namespace ExpenseTrackingAPI.Models
 {
     public class Transaction
     {

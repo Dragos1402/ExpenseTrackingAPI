@@ -7,18 +7,22 @@ using System.Data.Common;
 using Microsoft.AspNetCore.Mvc;
 using Dapper;
 using System.Transactions;
-using ExpenseTrackingAPI.Models.DbModels;
+using ExpenseTrackingAPI.DbModels;
 using System.Data;
 using ExpenseTrackingAPI.DataContext;
-using ExpenseTrackingAPI.Models.TransactionModels;
 using ExpenseTrackingAPI.Helpers;
+using ExpenseTrackingAPI.Models;
+using NuGet.Common;
+using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace ExpenseTrackingAPI.Services
 {
     public class TransactionsServ : ITransactions
     {
-        public List<Models.TransactionModels.TransactionList> Transactions { get; set; }
-        public Models.TransactionModels.Transaction Transaction { get; set; }
+        public List<TransactionList> Transactions { get; set; }
+        public Models.Transaction Transaction { get; set; }
+        public AccountDB Account { get; set; }
         public object ResultID { get; set; }
 
         private readonly ExpenseContext _context;
@@ -27,42 +31,16 @@ namespace ExpenseTrackingAPI.Services
         {
             _context = new(config);
         }
-        public string AddTransaction(AddTransaction addTransaction)
+
+        public string GetTransactions(int accID)
         {
-            try
-            {
-                var category = _context.TransactionCategories.FirstOrDefault(c => c.category_id == addTransaction.category_id);
-                var type = _context.TransactionTypes.FirstOrDefault(t => t.type_id == addTransaction.type_id);
+            Transactions = new List<TransactionList>();
 
-                var newTransaction = new Models.DbModels.Transactions
-                {
-                    value = addTransaction.value,
-                    transaction_date = addTransaction.transaction_date,
-                    note = addTransaction.note,
-                    category = category,
-                    type = type,
-                    inserted_by = 2,
-                    inserted_at_date = DateTime.Now,
-                };
-                _context.Transactions.Add(newTransaction);
-                _context.SaveChanges();
-
-                this.ResultID = newTransaction.transaction_id;
-                return ErrorCodes.SUCCESS;
-            }
-            catch (Exception ex)
-            {
-                return ErrorCodes.DATABASE_WRITING_ERROR;
-            }
-        }
-
-        public string GetTransactions()
-        {
-            Transactions = new List<Models.TransactionModels.TransactionList>();
             try
             {
                 Transactions = (from d in _context.Transactions
-                                      select new Models.TransactionModels.TransactionList
+                                where d.user_id == accID
+                                      select new Models.TransactionList
                                       {
                                           transaction_id = d.transaction_id,
                                           value = d.value,
@@ -71,45 +49,88 @@ namespace ExpenseTrackingAPI.Services
                                           category = d.category,
                                           type = d.type
                                       }).ToList();
+
+                Log.Information("GetTransactions was called with success and got all the data");
                 return ErrorCodes.SUCCESS;
             }
             catch (Exception ex)
             {
+                Log.Error("GetTransactions got an unexpected error:" + ex.Message);
                 return ErrorCodes.DATABASE_READING_ERROR;
             }
         }
 
-        public string GetTransactionById(int id)
+        public string GetTransactionById(int transactionID, int accID)
         {
-            this.Transaction = new Models.TransactionModels.Transaction();
+            
+            this.Transaction = new Models.Transaction();
+            this.Account = new AccountDB();
             try
             {
-                if (id==null)
+                if (accID==null)
                 {
                     return ErrorCodes.NO_ID_PROVIDED;
                 }
                 else
                 {
+
                     Transaction = (from d in _context.Transactions
-                                   where d.transaction_id == id
-                                   select new Models.TransactionModels.Transaction
+                                   where d.transaction_id == transactionID
+                                   where d.user_id == accID
+                                   select new Models.Transaction
                                    {
                                        transaction_id = d.transaction_id,
-                                       value=d.value,
+                                       value = d.value,
                                        transaction_date = d.transaction_date,
                                        note = d.note,
-                                       
-                                   }).FirstOrDefault();                
+
+                                   }).FirstOrDefault();
+
+                    Log.Information("GetTransactionById was called with success and got all the requested data");
+                    return ErrorCodes.SUCCESS;
                 }
-                return ErrorCodes.SUCCESS;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Log.Information("GetTransactionById got an unexpected error: " + ex.Message);
                 return ErrorCodes.DATABASE_READING_ERROR;
             }
         }
 
-        public string UpdateTransaction(UpdateTransaction updateTransaction)
+        public string AddTransaction(AddTransaction addTransaction, int accID)
+        {
+            try
+            {
+                var category = _context.TransactionCategories.FirstOrDefault(c => c.category_id == addTransaction.category_id);
+                var type = _context.TransactionTypes.FirstOrDefault(t => t.type_id == addTransaction.type_id);
+
+                var newTransaction = new DbModels.Transactions
+                {
+                    value = addTransaction.value,
+                    transaction_date = addTransaction.transaction_date,
+                    note = addTransaction.note,
+                    category = category,
+                    type = type,
+                    user_id = accID,
+                    created_by = accID,
+                    created_at_date = DateTime.Now,
+                };
+                _context.Transactions.Add(newTransaction);
+                _context.SaveChanges();
+
+                this.ResultID = newTransaction.transaction_id;
+
+                Log.Information("Transaction added succesfully for AccountID: " + accID);
+                return ErrorCodes.SUCCESS;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("An unexpected error occured during add transaction process. Reason: " + ex.Message);
+                return ErrorCodes.DATABASE_WRITING_ERROR;
+            }
+        }
+
+        public string UpdateTransaction(UpdateTransaction updateTransaction, int accID)
         {
             try
             {
@@ -125,6 +146,7 @@ namespace ExpenseTrackingAPI.Services
                     transaction.note = updateTransaction.note;
                     transaction.category = category;
                     transaction.type = type;
+                    transaction.user_id = accID;
                     transaction.modified_by = 2;
                     transaction.modified_at_date = DateTime.Now;
 
@@ -133,10 +155,12 @@ namespace ExpenseTrackingAPI.Services
 
                 this.ResultID = updateTransaction.transaction_id;
 
+                Log.Information("Transaction succesfully updated for User: " + accID + ", for Transaction ID: " + updateTransaction.transaction_id);
                 return ErrorCodes.SUCCESS;
             }
             catch (Exception ex)
             {
+                Log.Error("Unexpected error occured for updating transaction. Reason: ", ex.Message);
                 return ErrorCodes.DATABASE_UPDATE_ERROR;
             }
         }
